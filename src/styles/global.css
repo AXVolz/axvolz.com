@@ -252,18 +252,17 @@ p {
 }
 
 .quiet-home {
-  font-family: var(--display);
-  font-size: 0.95rem;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: -0.02em;
-  color: #c59d5f;
+  font-family: var(--ui);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(247, 244, 238, 0.88);
   text-decoration: none;
 }
 
 .quiet-home:hover,
 .quiet-home:focus-visible {
-  color: #f0d78a;
+  color: var(--gilt-bright);
 }
 
 .nav {

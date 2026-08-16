@@ -6,11 +6,7 @@ import { places, localityLine, ridgePts } from "../data/places";
 
 const teaser = built.slice(0, 5);
 const iguru = teaser[0]!;
-
-const otherBuilt = teaser.slice(1).map((item, i) => ({
-  ...item,
-  href: `/built#p${String(i + 2).padStart(2, "0")}`,
-}));
+const otherBuilt = teaser.slice(1);
 
 const languages = [
   { name: "Spanish", native: "Español", script: "es" },
@@ -106,9 +102,7 @@ const placePath = placeStars
                 <li>
                   <div class="cg-index-title">
                     <strong>{item.title}</strong>
-                    <a class="cg-index-role" href={item.href}>
-                      {item.role}
-                    </a>
+                    <span class="cg-index-role">{item.role}</span>
                   </div>
                   <p class="cg-index-summary">{item.pitch}</p>
                   <details class="cg-more">
@@ -889,13 +883,7 @@ const placePath = placeStars
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(247, 244, 238, 0.58);
-    text-decoration: none;
     width: fit-content;
-  }
-
-  .cg-index-role:hover,
-  .cg-index-role:focus-visible {
-    color: #f0d78a;
   }
 
   .cg-index-summary {
