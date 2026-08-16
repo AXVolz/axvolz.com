@@ -1,0 +1,51 @@
+---
+import Base from "../../layouts/Base.astro";
+import { books, bookBySlug, bookSlug, monthName } from "../../data/books";
+
+export function getStaticPaths() {
+  return books.map((book) => ({
+    params: { slug: bookSlug(book) },
+  }));
+}
+
+const { slug } = Astro.params;
+const book = slug ? bookBySlug(slug) : undefined;
+
+if (!book) {
+  return Astro.redirect("/bookish#read");
+}
+
+function statusLabel(status: string) {
+  if (status === "did-not-finish") return "didn’t finish";
+  if (status === "reading") return "reading";
+  if (status === "finished") return "finished";
+  return undefined;
+}
+
+const quotes = book.quotes ?? [];
+const when = [monthName(book.month), book.year].filter(Boolean).join(" ");
+---
+
+<Base
+  title={book.title}
+  description={`${book.title} by ${book.author}`}
+  bodyClass="share-bookish"
+>
+  <div class="page wrap book-page">
+    <a class="back-link" href="/bookish#read">Read</a>
+    <h1 class="page-title">{book.title}</h1>
+    <p class="meta">{book.author}</p>
+    <p class="meta">
+      {[when, statusLabel(book.status)].filter(Boolean).join(" · ")}
+    </p>
+    {
+      quotes.length > 0 && (
+        <ul class="quotes">
+          {quotes.map((quote) => (
+            <li>{quote}</li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Base>

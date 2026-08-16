@@ -1,0 +1,240 @@
+---
+import Base from "../layouts/Base.astro";
+import WritingRoom from "../components/WritingRoom.astro";
+import ReadRoom from "../components/ReadRoom.astro";
+---
+
+<Base
+  title="Bookish Pursuits"
+  description="Books and papers by Austin X. Volz, and books he has read."
+  bodyClass="share-bookish"
+>
+  <div class="page wrap bookish-page" data-bookish data-leaf="written">
+    <header class="volume-head">
+      <h1 class="bookish-title">Bookish Pursuits</h1>
+      <div class="spread" role="group" aria-label="Written or read">
+        <button
+          type="button"
+          class="leaf leaf-verso"
+          data-leaf-btn="written"
+          aria-pressed="true"
+          aria-controls="written"
+        >
+          Written
+        </button>
+        <span class="gutter" aria-hidden="true"></span>
+        <button
+          type="button"
+          class="leaf leaf-recto"
+          data-leaf-btn="read"
+          aria-pressed="false"
+          aria-controls="read"
+        >
+          Read
+        </button>
+      </div>
+    </header>
+
+    <section class="bookish-section" id="written" data-leaf-panel="written">
+      <h2>What I’ve Written</h2>
+      <WritingRoom />
+    </section>
+
+    <section class="bookish-section" id="read" data-leaf-panel="read" hidden>
+      <h2>Books from the past few years</h2>
+      <ReadRoom showTitle={false} />
+    </section>
+  </div>
+</Base>
+
+<script>
+  const KEY = "axvolz:bookish:leaf";
+  type Leaf = "written" | "read";
+
+  const root = document.querySelector<HTMLElement>("[data-bookish]");
+  if (root) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>("[data-leaf-btn]")];
+    const panels = [...root.querySelectorAll<HTMLElement>("[data-leaf-panel]")];
+
+    const setLeaf = (leaf: Leaf, persist = true) => {
+      root.dataset.leaf = leaf;
+      for (const btn of buttons) {
+        btn.setAttribute("aria-pressed", String(btn.dataset.leafBtn === leaf));
+      }
+      for (const panel of panels) {
+        panel.hidden = panel.dataset.leafPanel !== leaf;
+      }
+      if (persist) {
+        sessionStorage.setItem(KEY, leaf);
+        const url = new URL(window.location.href);
+        url.hash = leaf;
+        history.replaceState(null, "", url);
+      }
+    };
+
+    for (const btn of buttons) {
+      btn.addEventListener("click", () => {
+        const leaf = btn.dataset.leafBtn;
+        if (leaf === "written" || leaf === "read") setLeaf(leaf);
+      });
+    }
+
+    const fromHash = window.location.hash.replace("#", "");
+    const fromStore = sessionStorage.getItem(KEY);
+    const initial: Leaf =
+      fromHash === "read" || fromHash === "written"
+        ? fromHash
+        : fromStore === "read" || fromStore === "written"
+          ? fromStore
+          : "written";
+    setLeaf(initial, fromHash === "read" || fromHash === "written");
+
+    window.addEventListener("hashchange", () => {
+      const next = window.location.hash.replace("#", "");
+      if (next === "read" || next === "written") setLeaf(next, false);
+    });
+  }
+</script>
+
+<style is:global>
+  body.share-bookish {
+    --gilt: #c59d5f;
+    --gilt-bright: #f0d78a;
+    background: #000;
+    color: #f7f4ee;
+  }
+
+  body.share-bookish .site-footer {
+    background: #000;
+    border-top-color: rgba(197, 160, 89, 0.18);
+  }
+</style>
+
+<style>
+  .bookish-page {
+    width: min(76rem, calc(100% - 3rem));
+    padding-bottom: 5.5rem;
+  }
+
+  .volume-head {
+    margin-bottom: 2.8rem;
+  }
+
+  .bookish-title {
+    font-family: var(--display);
+    font-size: clamp(1.72rem, 3.4vw, 2.7rem);
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    color: #c59d5f;
+    margin: 0;
+  }
+
+  .spread {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    width: min(22rem, 100%);
+    margin-top: 1.35rem;
+  }
+
+  .gutter {
+    width: 1px;
+    margin: 0.15rem 0.85rem;
+    background: #c59d5f;
+  }
+
+  .leaf {
+    border: 0;
+    padding: 0.15rem 0;
+    background: none;
+    font-family: var(--display);
+    font-size: 1.28rem;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    color: rgba(247, 244, 238, 0.38);
+    cursor: pointer;
+  }
+
+  .leaf-verso {
+    text-align: right;
+    padding-right: 0.15rem;
+  }
+
+  .leaf-recto {
+    text-align: left;
+    padding-left: 0.15rem;
+  }
+
+  .leaf:hover,
+  .leaf:focus-visible {
+    color: #f0d78a;
+    outline: none;
+  }
+
+  .leaf[aria-pressed="true"] {
+    color: #c59d5f;
+  }
+
+  .bookish-section {
+    margin-top: 0.4rem;
+  }
+
+  .bookish-section[hidden] {
+    display: none;
+  }
+
+  .bookish-section:not([hidden]) {
+    animation: leaf-in 300ms ease;
+  }
+
+  .bookish-section > h2 {
+    font-family: var(--display);
+    font-size: clamp(1.45rem, 2.6vw, 2.05rem);
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    margin: 0 0 1.5rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgba(197, 160, 89, 0.28);
+    color: #c59d5f;
+  }
+
+  .bookish-page :global(.kicker) {
+    color: #c59d5f;
+  }
+
+  .bookish-page :global(.item-n) {
+    color: #c59d5f;
+  }
+
+  .bookish-page :global(.record-list li) {
+    border-color: rgba(197, 160, 89, 0.18);
+  }
+
+  .bookish-page :global(.meta) {
+    color: rgba(247, 244, 238, 0.58);
+  }
+
+  @keyframes leaf-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 840px) {
+    .bookish-page {
+      width: min(76rem, calc(100% - 2rem));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bookish-section:not([hidden]) {
+      animation: none;
+    }
+  }
+</style>

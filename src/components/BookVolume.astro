@@ -1,0 +1,443 @@
+---
+import type { BookStatus, BindingLabel, Cloth } from "../data/books";
+
+interface Props {
+  title: string;
+  author: string;
+  slug: string;
+  cloth: Cloth;
+  height: number;
+  width: number;
+  label: BindingLabel;
+  status: BookStatus;
+}
+
+const { title, author, slug, cloth, height, width, label, status } = Astro.props;
+
+const titleSize = title.length > 52 ? "long" : title.length > 28 ? "mid" : "short";
+const statusNote =
+  status === "did-not-finish" ? "didn’t finish" : status === "reading" ? "reading" : undefined;
+const lightCloth = cloth === "cream" || cloth === "ochre";
+---
+
+<div
+  class="volume-wrap"
+  data-book={slug}
+  style={`--h: ${height}; --w: ${width}rem;`}
+>
+  <article
+    class:list={[
+      "volume",
+      `cloth-${cloth}`,
+      `label-${label}`,
+      titleSize,
+      { reading: status === "reading", light: lightCloth },
+    ]}
+    aria-label={`${title} by ${author}${statusNote ? ` · ${statusNote}` : ""}`}
+  >
+    {status === "reading" && <span class="ribbon" aria-hidden="true"></span>}
+    <span class="spine-edge" aria-hidden="true"></span>
+    <span class="headband" aria-hidden="true"></span>
+    <div class="copy">
+      <h3 class="vol-title">{title}</h3>
+      <p class="vol-author">{author}</p>
+      {statusNote && <p class="vol-status">{statusNote}</p>}
+      <p class="private-note" data-note hidden></p>
+    </div>
+  </article>
+  <div class="love-row">
+    <button
+      type="button"
+      class="love-btn"
+      aria-pressed="false"
+      aria-label={`Recommend ${title}`}
+    >
+      Recommend
+    </button>
+    <p class="love-tally" data-tally hidden></p>
+  </div>
+  <label class="card-slip">
+    <span class="card-kicker">This copy</span>
+    <input
+      class="card-input"
+      type="text"
+      maxlength="48"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="a word, if you want"
+      aria-label={`A private word for ${title}, kept in this browser`}
+    />
+  </label>
+</div>
+
+<style>
+  .volume-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: var(--w, 12rem);
+  }
+
+  .volume {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: var(--w, 12rem);
+    height: calc(var(--h, 1) * 18.4rem);
+    padding: 1.35rem 0.95rem 1.15rem 1.15rem;
+    overflow: hidden;
+    color: #f0e2b8;
+    box-shadow:
+      0 22px 38px rgba(48, 32, 14, 0.16),
+      0 3px 8px rgba(48, 32, 14, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+
+  .volume.reading {
+    transform: translateY(-0.35rem);
+  }
+
+  .spine-edge {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.55rem;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.38),
+      rgba(255, 255, 255, 0.12) 45%,
+      transparent
+    );
+  }
+
+  .headband {
+    position: absolute;
+    top: 0;
+    left: 0.55rem;
+    right: 0;
+    height: 0.32rem;
+    background: linear-gradient(180deg, rgba(212, 175, 90, 0.55), rgba(212, 175, 90, 0.08));
+  }
+
+  .ribbon {
+    position: absolute;
+    top: 0;
+    right: 0.85rem;
+    z-index: 2;
+    width: 0.34rem;
+    height: 2.7rem;
+    background: linear-gradient(180deg, #e8c97a, #b08a3e);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .copy {
+    position: relative;
+    z-index: 1;
+  }
+
+  .copy::before {
+    content: "";
+    display: block;
+    width: 1.7rem;
+    height: 1px;
+    margin-bottom: 0.75rem;
+    background: currentColor;
+    opacity: 0.5;
+  }
+
+  .vol-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: -0.03em;
+    line-height: 1.14;
+    text-wrap: balance;
+    color: inherit;
+  }
+
+  .short .vol-title {
+    font-size: 1.48rem;
+  }
+
+  .mid .vol-title {
+    font-size: 1.22rem;
+  }
+
+  .long .vol-title {
+    font-size: 1.05rem;
+    font-style: normal;
+  }
+
+  .vol-author {
+    margin-top: 0.45rem;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.92rem;
+    line-height: 1.3;
+    color: color-mix(in srgb, currentColor 78%, transparent);
+  }
+
+  .vol-status {
+    margin-top: 0.4rem;
+    font-family: var(--ui);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+    color: #d4af5a;
+  }
+
+  .private-note {
+    margin-top: 0.45rem;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    color: #e8c97a;
+  }
+
+  .light {
+    color: #1c1710;
+  }
+
+  .light .vol-status,
+  .light .private-note {
+    color: #7a5a1e;
+  }
+
+  .light .headband {
+    background: linear-gradient(180deg, rgba(28, 23, 16, 0.18), transparent);
+  }
+
+  .label-paper .copy {
+    background: #f7f1e3;
+    color: #1c1710;
+    padding: 0.85rem 0.7rem 0.75rem;
+    box-shadow:
+      0 0 0 1px rgba(28, 23, 16, 0.12),
+      0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .label-paper .vol-title {
+    font-style: normal;
+    color: #1c1710;
+  }
+
+  .label-paper .vol-author {
+    color: #5a4e3e;
+  }
+
+  .label-paper .vol-status,
+  .label-paper .private-note {
+    color: #7a5a1e;
+  }
+
+  .label-paper .copy::before {
+    background: #1c1710;
+    opacity: 0.35;
+  }
+
+  .love-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.12rem;
+    width: 100%;
+    margin-top: 0.7rem;
+    text-align: center;
+  }
+
+  .love-btn {
+    border: 0;
+    padding: 0;
+    background: none;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.98rem;
+    color: #c59d5f;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, #c59d5f 55%, transparent);
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: 1px;
+  }
+
+  .love-btn:hover,
+  .love-btn:focus-visible {
+    color: #f0d78a;
+    outline: none;
+  }
+
+  .volume-wrap.loved .love-btn {
+    color: #f0d78a;
+    text-decoration-color: #c59d5f;
+    cursor: default;
+  }
+
+  .love-tally {
+    margin: 0;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.82rem;
+    color: rgba(247, 244, 238, 0.48);
+  }
+
+  .card-slip {
+    display: none;
+    width: 100%;
+    margin-top: 0.55rem;
+    padding: 0.4rem 0.5rem 0.45rem;
+    background: #16120c;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.35);
+    color: #e8dcc4;
+  }
+
+  .volume-wrap.loved .card-slip {
+    display: block;
+  }
+
+  .card-kicker {
+    display: block;
+    font-family: var(--ui);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #c59d5f;
+    margin-bottom: 0.15rem;
+  }
+
+  .card-input {
+    width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 0.88rem;
+    color: #f7f4ee;
+    outline: none;
+  }
+
+  .card-input::placeholder {
+    color: rgba(247, 244, 238, 0.38);
+  }
+
+  .cloth-ink {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #161c2c;
+  }
+  .cloth-navy {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #1d2b4a;
+  }
+  .cloth-oxblood {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #6a2a30;
+  }
+  .cloth-forest {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #1e3b32;
+  }
+  .cloth-walnut {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #4a3426;
+  }
+  .cloth-wine {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #522433;
+  }
+  .cloth-slate {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #323840;
+  }
+  .cloth-sienna {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #6a4030;
+  }
+  .cloth-midnight {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #12151c;
+  }
+  .cloth-olive {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 24%),
+      #343a28;
+  }
+  .cloth-cream {
+    background:
+      linear-gradient(90deg, rgba(80, 50, 20, 0.1), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 30%),
+      #e8dcc4;
+    color: #1c1710;
+  }
+  .cloth-terracotta {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.18), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+      #c45c32;
+  }
+  .cloth-teal {
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 24%),
+      #1d4a4e;
+  }
+  .cloth-ochre {
+    background:
+      linear-gradient(90deg, rgba(80, 50, 20, 0.12), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 28%),
+      #c4a056;
+    color: #1c1710;
+  }
+
+  @media (max-width: 560px) {
+    .volume-wrap,
+    .volume {
+      width: min(var(--w, 12rem), 100%);
+    }
+
+    .volume {
+      height: calc(var(--h, 1) * 15.6rem);
+      padding: 1rem 0.7rem 0.9rem 0.9rem;
+    }
+
+    .short .vol-title {
+      font-size: 1.18rem;
+    }
+
+    .mid .vol-title {
+      font-size: 1.05rem;
+    }
+
+    .long .vol-title {
+      font-size: 0.95rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .volume.reading {
+      transform: none;
+    }
+  }
+</style>

@@ -1,0 +1,354 @@
+---
+import Bookshelf from "./Bookshelf.astro";
+import { booksByShelf, booksNewestFirst } from "../data/books";
+
+type Props = {
+  showTitle?: boolean;
+};
+
+const { showTitle = true } = Astro.props;
+const chrono = booksNewestFirst();
+const shelves = booksByShelf();
+---
+
+<div class="read-room" data-press-room data-view="chrono">
+  <header class="press-head">
+    <div>
+      {showTitle && <h1 class="page-title">Books from the past few years</h1>}
+      <p class="press-note" data-for="chrono">In reverse chronological order.</p>
+      <p class="press-note" data-for="shelf" hidden>Grouped by shelf.</p>
+    </div>
+    <div class="view-switch" role="group" aria-label="How to group the books">
+      <button type="button" data-view-btn="chrono" aria-pressed="true">
+        Chronological
+      </button>
+      <span aria-hidden="true">·</span>
+      <button type="button" data-view-btn="shelf" aria-pressed="false">By shelf</button>
+    </div>
+  </header>
+
+  <div data-panel="chrono">
+    <Bookshelf books={chrono} />
+  </div>
+
+  <div data-panel="shelf" hidden>
+    {
+      shelves.map((shelf) => (
+        <section class="shelf-bay" id={`shelf-${shelf.id}`}>
+          <h2>{shelf.label}</h2>
+          <Bookshelf books={shelf.books} />
+        </section>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  const VIEW_KEY = "axvolz:read:view";
+  const LOVED_KEY = "axvolz:read:loved";
+  const COUNTER_NS = "axvolz-read";
+  const COUNTER_BASE = "https://abacus.jasoncameron.dev";
+
+  type View = "chrono" | "shelf";
+  type LovedMap = Record<string, { loved: boolean; note?: string; counted?: boolean }>;
+
+  const room = document.querySelector("[data-press-room]");
+  const counts = new Map<string, number>();
+  const fetching = new Set<string>();
+
+  function loadLoved(): LovedMap {
+    try {
+      return JSON.parse(localStorage.getItem(LOVED_KEY) ?? "{}") as LovedMap;
+    } catch {
+      return {};
+    }
+  }
+
+  function saveLoved(map: LovedMap) {
+    localStorage.setItem(LOVED_KEY, JSON.stringify(map));
+  }
+
+  function setView(view: View, persist = true) {
+    if (!room) return;
+    room.setAttribute("data-view", view);
+    for (const note of room.querySelectorAll<HTMLElement>(".press-note")) {
+      note.hidden = note.dataset.for !== view;
+    }
+    for (const panel of room.querySelectorAll<HTMLElement>("[data-panel]")) {
+      panel.hidden = panel.dataset.panel !== view;
+    }
+    for (const btn of room.querySelectorAll<HTMLButtonElement>("[data-view-btn]")) {
+      btn.setAttribute("aria-pressed", String(btn.dataset.viewBtn === view));
+    }
+    if (persist) {
+      localStorage.setItem(VIEW_KEY, view);
+      const onBookish = window.location.pathname.replace(/\/$/, "") === "/bookish";
+      if (!onBookish) {
+        const url = new URL(window.location.href);
+        url.hash = view === "shelf" ? "shelf" : "";
+        history.replaceState(null, "", url);
+      }
+    }
+  }
+
+  function counterKey(slug: string) {
+    const key = slug.replace(/[^A-Za-z0-9_.-]/g, "-").slice(0, 64);
+    return key.length >= 3 ? key : `book-${key}`;
+  }
+
+  function tallyText(n: number) {
+    return n === 1 ? "1 recommendation" : `${n} recommendations`;
+  }
+
+  function renderTally(wrap: HTMLElement, n: number | undefined) {
+    const el = wrap.querySelector<HTMLElement>("[data-tally]");
+    if (!el) return;
+    if (n == null) {
+      el.hidden = true;
+      el.textContent = "";
+      return;
+    }
+    el.hidden = false;
+    el.textContent = tallyText(n);
+  }
+
+  function applyTally(slug: string, n: number | undefined) {
+    if (n != null) counts.set(slug, n);
+    for (const wrap of document.querySelectorAll<HTMLElement>(`[data-book="${slug}"]`)) {
+      renderTally(wrap, n);
+    }
+  }
+
+  async function readCount(slug: string): Promise<number | undefined> {
+    try {
+      const res = await fetch(`${COUNTER_BASE}/get/${COUNTER_NS}/${counterKey(slug)}`);
+      if (res.status === 404) return 0;
+      if (!res.ok) return undefined;
+      const data = (await res.json()) as { value?: number };
+      return typeof data.value === "number" ? data.value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async function hitCount(slug: string): Promise<number | undefined> {
+    try {
+      const res = await fetch(`${COUNTER_BASE}/hit/${COUNTER_NS}/${counterKey(slug)}`);
+      if (!res.ok) return undefined;
+      const data = (await res.json()) as { value?: number };
+      return typeof data.value === "number" ? data.value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async function loadCount(slug: string) {
+    if (counts.has(slug) || fetching.has(slug)) return;
+    fetching.add(slug);
+    const n = await readCount(slug);
+    fetching.delete(slug);
+    applyTally(slug, n);
+  }
+
+  function applyLoved(wrap: HTMLElement, entry: LovedMap[string] | undefined) {
+    const loved = Boolean(entry?.loved);
+    const note = entry?.note?.trim() ?? "";
+    wrap.classList.toggle("loved", loved);
+    const btn = wrap.querySelector<HTMLButtonElement>(".love-btn");
+    const noteEl = wrap.querySelector<HTMLElement>("[data-note]");
+    const input = wrap.querySelector<HTMLInputElement>(".card-input");
+    const title = wrap.querySelector(".vol-title")?.textContent ?? "this book";
+    btn?.setAttribute("aria-pressed", String(loved));
+    if (btn) {
+      btn.textContent = "Recommend";
+      btn.setAttribute(
+        "aria-label",
+        loved ? `You recommended ${title}` : `Recommend ${title}`,
+      );
+    }
+    if (noteEl) {
+      noteEl.hidden = !note;
+      noteEl.textContent = note ? `“${note}”` : "";
+    }
+    if (input && input.value !== note) input.value = note;
+    renderTally(wrap, counts.get(wrap.dataset.book ?? ""));
+  }
+
+  const loved = loadLoved();
+  for (const wrap of document.querySelectorAll<HTMLElement>("[data-book]")) {
+    const slug = wrap.dataset.book;
+    if (!slug) continue;
+    applyLoved(wrap, loved[slug]);
+  }
+
+  const seen = new Set<string>();
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const slug = (entry.target as HTMLElement).dataset.book;
+        if (!slug || seen.has(slug)) continue;
+        seen.add(slug);
+        observer.unobserve(entry.target);
+        void loadCount(slug);
+      }
+    },
+    { rootMargin: "120px" },
+  );
+
+  for (const wrap of document.querySelectorAll<HTMLElement>("[data-book]")) {
+    observer.observe(wrap);
+  }
+
+  document.addEventListener("click", (event) => {
+    const viewBtn = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-view-btn]");
+    if (viewBtn?.dataset.viewBtn === "chrono" || viewBtn?.dataset.viewBtn === "shelf") {
+      setView(viewBtn.dataset.viewBtn);
+      return;
+    }
+
+    const loveBtn = (event.target as HTMLElement).closest<HTMLButtonElement>(".love-btn");
+    const wrap = loveBtn?.closest<HTMLElement>("[data-book]");
+    const slug = wrap?.dataset.book;
+    if (!loveBtn || !wrap || !slug) return;
+
+    const next = loadLoved();
+    if (next[slug]?.loved) return;
+    const alreadyCounted = Boolean(next[slug]?.counted);
+    next[slug] = {
+      loved: true,
+      note: next[slug]?.note,
+      counted: true,
+    };
+    saveLoved(next);
+    for (const other of document.querySelectorAll<HTMLElement>(`[data-book="${slug}"]`)) {
+      applyLoved(other, next[slug]);
+    }
+    if (!alreadyCounted) {
+      const current = counts.get(slug);
+      if (current != null) applyTally(slug, current + 1);
+      void hitCount(slug).then((n) => {
+        if (n != null) applyTally(slug, n);
+      });
+    }
+  });
+
+  document.addEventListener("input", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.classList.contains("card-input")) return;
+    const wrap = input.closest<HTMLElement>("[data-book]");
+    const slug = wrap?.dataset.book;
+    if (!wrap || !slug) return;
+    const next = loadLoved();
+    next[slug] = {
+      loved: true,
+      note: input.value,
+      counted: Boolean(next[slug]?.counted),
+    };
+    saveLoved(next);
+    for (const other of document.querySelectorAll<HTMLElement>(`[data-book="${slug}"]`)) {
+      applyLoved(other, next[slug]);
+    }
+  });
+
+  const onBookish = window.location.pathname.replace(/\/$/, "") === "/bookish";
+  const fromHash =
+    !onBookish && window.location.hash === "#shelf" ? "shelf" : undefined;
+  const fromStore = localStorage.getItem(VIEW_KEY);
+  const initial: View =
+    fromHash ?? (fromStore === "shelf" || fromStore === "chrono" ? fromStore : "chrono");
+  setView(initial, false);
+</script>
+
+<style>
+  .page-title {
+    font-size: clamp(1.72rem, 3.4vw, 2.7rem);
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    color: #c59d5f;
+    margin: 0 0 0.45rem;
+  }
+
+  .page-title::after {
+    content: "";
+    display: block;
+    width: 2.35rem;
+    height: 1px;
+    background: #c59d5f;
+    margin-top: 0.85rem;
+  }
+
+  .press-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1.5rem 2rem;
+    margin-bottom: 2.4rem;
+  }
+
+  .press-note {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 1.18rem;
+    color: rgba(247, 244, 238, 0.55);
+    margin: 0;
+  }
+
+  .view-switch {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55rem;
+    padding-bottom: 0.2rem;
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: rgba(247, 244, 238, 0.38);
+    flex-shrink: 0;
+  }
+
+  .view-switch button {
+    border: 0;
+    padding: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .view-switch button:hover,
+  .view-switch button:focus-visible {
+    color: #f0d78a;
+    outline: none;
+  }
+
+  .view-switch button[aria-pressed="true"] {
+    color: #f7f4ee;
+    text-decoration: underline;
+    text-decoration-color: #c59d5f;
+    text-underline-offset: 0.28em;
+    text-decoration-thickness: 1px;
+  }
+
+  .shelf-bay {
+    margin-bottom: 3.2rem;
+  }
+
+  .shelf-bay h2 {
+    font-size: clamp(1.6rem, 2.8vw, 2.15rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    margin: 0 0 1.3rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid rgba(197, 160, 89, 0.28);
+    color: #c59d5f;
+  }
+
+  @media (max-width: 840px) {
+    .press-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+</style>

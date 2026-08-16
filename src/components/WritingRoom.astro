@@ -1,0 +1,55 @@
+---
+import { writing } from "../data/writing";
+
+const books = writing.filter((item) => item.kind === "book");
+const papers = writing.filter((item) => item.kind === "paper");
+---
+
+<div class="writing-block">
+  <h2 class="kicker section-kicker">Books</h2>
+  <ol class="record-list">
+    {
+      books.map((item, i) => (
+        <li>
+          <span class="item-n">{String(i + 1).padStart(2, "0")}</span>
+          <div>
+            <h2>
+              {item.href ? (
+                <a href={item.href} target="_blank" rel="noopener noreferrer">
+                  {item.title}
+                </a>
+              ) : (
+                item.title
+              )}
+            </h2>
+            <p class="meta">
+              {[item.authors, item.year, item.venue].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</div>
+
+<div class="writing-block">
+  <h2 class="kicker section-kicker">Book chapters and papers</h2>
+  <ol class="record-list">
+    {
+      papers.map((item, i) => (
+        <li>
+          <span class="item-n">{String(i + 1).padStart(2, "0")}</span>
+          <div>
+            <h2>
+              {item.href ? <a href={item.href}>{item.title}</a> : item.title}
+            </h2>
+            <p class="meta">
+              {[item.authors, item.year, item.venue].filter(Boolean).join(" · ")}
+              {item.note ? ` (${item.note})` : ""}
+            </p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</div>
