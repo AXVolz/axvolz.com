@@ -27,24 +27,27 @@ export function placeLabel(place: Place): string {
     : `${place.city}, ${place.country}`;
 }
 
-/** Sixteen points along the golden-hour ridge (Share + /lived header). */
+/** Dark rock left of San Mateo, under the dense gold lattice (image % of lived-golden-hour.png). */
+export const livedCave = [75.4, 79.2] as const;
+
+/** Sixteen points on the golden-hour mountain (image % of lived-golden-hour.png). */
 export const ridgePts = [
-  [42.8, 72],
-  [45.1, 68.5],
-  [47.4, 65],
-  [51.8, 59],
-  [56.0, 53],
-  [60.2, 47],
-  [64.4, 41],
-  [68.4, 35],
-  [72.4, 31],
-  [76.4, 38],
-  [80.4, 44],
-  [84.4, 39],
-  [88.4, 46],
-  [92.6, 40],
-  [94.7, 37.5],
-  [96.8, 35],
+  [44.0, 70.5],
+  [46.0, 67.0],
+  [47.4, 65.0],
+  [51.8, 60.5],
+  [56.0, 53.0],
+  [60.2, 53.0],
+  [64.4, 46.0],
+  [81.5, 32.0],
+  [80.5, 39.5],
+  [80.4, 45.5],
+  [80.6, 52.0],
+  [81.4, 56.0],
+  [82.8, 64.5],
+  [84.6, 68.0],
+  [86.6, 72.0],
+  [89.0, 77.0],
 ] as const;
 
 export const places: Place[] = [
@@ -209,7 +212,7 @@ export const places: Place[] = [
     region: "California",
     country: "USA",
     note: "Currently",
-    short: "Building I.GURU",
+    short: "Building I.GURU and serving on the Library Board",
     photo: "/places/san-mateo.png",
     photoAlt: "Sea stacks and surf on the coast near San Mateo",
   },

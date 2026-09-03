@@ -316,7 +316,8 @@ p {
 }
 
 body.share-bookish,
-body.share-contact {
+body.share-contact,
+body.share-inside {
   --gilt: #c59d5f;
   --gilt-bright: #f0d78a;
   background: #000;
@@ -324,7 +325,8 @@ body.share-contact {
 }
 
 body.share-bookish .site-footer,
-body.share-contact .site-footer {
+body.share-contact .site-footer,
+body.share-inside .site-footer {
   background: #000;
   border-top-color: rgba(197, 160, 89, 0.18);
 }

@@ -1,0 +1,108 @@
+---
+import { livedCave } from "../data/places";
+---
+
+<div
+  class="lived-cave-wrap"
+  style={`left:${livedCave[0]}%; top:${livedCave[1]}%`}
+  data-lived-cave
+>
+  <a class="lived-cave" href="/inside" aria-label="A recess in the rock">
+    <svg class="lived-cave-mouth" viewBox="0 0 40 54" aria-hidden="true">
+      <defs>
+        <filter id="lived-cave-grain" x="-40%" y="-40%" width="180%" height="180%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="3" result="n"></feTurbulence>
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="n"
+            scale="1.4"
+            xChannelSelector="R"
+            yChannelSelector="G"></feDisplacementMap>
+          <feGaussianBlur stdDeviation="0.35"></feGaussianBlur>
+        </filter>
+        <radialGradient id="lived-cave-void" cx="38%" cy="34%" r="78%">
+          <stop offset="0%" stop-color="#0a0705"></stop>
+          <stop offset="46%" stop-color="#1c110c"></stop>
+          <stop offset="100%" stop-color="#3a2416"></stop>
+        </radialGradient>
+        <linearGradient id="lived-cave-lip" x1="0" y1="0.15" x2="1" y2="0.85">
+          <stop offset="0%" stop-color="#c59d5f"></stop>
+          <stop offset="50%" stop-color="#7a5230"></stop>
+          <stop offset="100%" stop-color="#321c10"></stop>
+        </linearGradient>
+      </defs>
+      <path
+        class="lived-cave-lip"
+        fill="none"
+        stroke="url(#lived-cave-lip)"
+        stroke-width="1.55"
+        filter="url(#lived-cave-grain)"
+        d="M19.4 4.2c-6.4 1.1-12.6 6.4-14.6 13.6-2.1 7.4.6 15.6 6.4 20.4 4.8 4 12.2 5.2 17.6 2.4 5.2-2.6 8.2-8.6 7.4-14.6-.9-6.6-5.2-12-11.2-14.8-1.8-.8-3.7-1.5-5.6-1.7Z"
+      ></path>
+      <path
+        class="lived-cave-stain"
+        fill="url(#lived-cave-void)"
+        filter="url(#lived-cave-grain)"
+        d="M19.6 6.6c-5.4 1-10.6 5.4-12.2 11.4-1.8 6.4.4 13.4 5.4 17.4 4.1 3.4 10.4 4.4 14.8 1.8 4.4-2.2 6.8-7.4 6.2-12.4-.7-5.6-4.4-10.2-9.4-12.6-1.5-.7-3.1-1.2-4.8-1.4Z"
+      ></path>
+    </svg>
+  </a>
+</div>
+
+<style>
+  .lived-cave-wrap {
+    position: absolute;
+    z-index: 4;
+    width: 2.7%;
+    height: 4.2%;
+    min-width: 30px;
+    min-height: 44px;
+    transform: translate(-50%, -46%);
+    pointer-events: auto;
+  }
+
+  .lived-cave {
+    display: block;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: rotate(-14deg);
+    text-decoration: none;
+  }
+
+  .lived-cave-mouth {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    filter: drop-shadow(0 1px 1px rgba(8, 4, 2, 0.32));
+  }
+
+  .lived-cave-stain {
+    opacity: 0.84;
+  }
+
+  .lived-cave-lip {
+    opacity: 0.52;
+  }
+
+  .lived-cave:hover .lived-cave-lip,
+  .lived-cave:focus-visible .lived-cave-lip {
+    opacity: 0.82;
+  }
+
+  .lived-cave:hover .lived-cave-stain,
+  .lived-cave:focus-visible .lived-cave-stain {
+    opacity: 0.95;
+  }
+
+  .lived-cave:focus-visible {
+    outline: 1px solid rgba(197, 157, 95, 0.32);
+    outline-offset: 4px;
+  }
+</style>

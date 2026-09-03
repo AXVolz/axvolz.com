@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import LivedCave from "../components/LivedCave.astro";
 import { site } from "../data/site";
 import { cityName, localityLine, placeLabel, places, ridgePts } from "../data/places";
 
@@ -15,11 +16,7 @@ const placeStars = places.map((place, i) => ({
 }));
 
 const placePath = placeStars
-  .map((p, i) => {
-    const x = (p.x / 100) * 1440;
-    const y = (p.y / 100) * 720;
-    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-  })
+  .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
   .join(" ");
 ---
 
@@ -36,27 +33,53 @@ const placePath = placeStars
     </header>
 
     <section class="cg-lived" aria-label="How I got here">
-      <img
-        class="cg-lived-photo"
-        src="/lived-golden-hour.png"
-        alt=""
-        width="1920"
-        height="1080"
-        decoding="async"
-      />
-      <svg
-        class="cg-day-sky"
-        viewBox="0 0 1440 720"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d={placePath}
-          fill="none"
-          stroke="#d4af5a"
-          stroke-width="1.05"
-          opacity="0.7"></path>
-      </svg>
+      <div class="cg-lived-stage">
+        <img
+          class="cg-lived-photo"
+          src="/lived-golden-hour.png"
+          alt=""
+          width="1536"
+          height="1024"
+          decoding="async"
+        />
+        <div class="cg-lived-plot">
+          <svg
+            class="cg-day-sky"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              d={placePath}
+              fill="none"
+              stroke="#d4af5a"
+              stroke-width="1.05"
+              opacity="0.7"></path>
+          </svg>
+
+          <div class="cg-stars cg-stars-day">
+            {
+              placeStars.map((star, i) => (
+                <div
+                  class:list={["cg-star", "cg-star-place", { "is-on": i === hereIndex }]}
+                  style={`left:${star.x}%; top:${star.y}%`}
+                  data-star={star.slug}
+                >
+                  <span class="cg-star-core" aria-hidden="true"></span>
+                  <a
+                    class="cg-star-name"
+                    href={`#${star.slug}`}
+                    aria-current={i === hereIndex ? "true" : undefined}
+                  >
+                    {star.city}
+                  </a>
+                </div>
+              ))
+            }
+        </div>
+        <LivedCave />
+      </div>
+      </div>
 
       <div class="cg-lived-copy">
         <h1>
@@ -66,22 +89,6 @@ const placePath = placeStars
         <p class="cg-lived-count">
           {cityCount} cities · Greece, Germany, China, USA
         </p>
-      </div>
-
-      <div class="cg-stars cg-stars-day">
-        {
-          placeStars.map((star, i) => (
-            <a
-              class:list={["cg-star", "cg-star-place", { "is-on": i === hereIndex }]}
-              style={`left:${star.x}%; top:${star.y}%`}
-              href={`#${star.slug}`}
-              aria-current={i === hereIndex ? "true" : undefined}
-            >
-              <span class="cg-star-core"></span>
-              <span class="cg-star-name">{star.city}</span>
-            </a>
-          ))
-        }
       </div>
     </section>
   </div>
@@ -189,6 +196,60 @@ const placePath = placeStars
 
   goToHash();
   window.addEventListener("hashchange", goToHash);
+</script>
+
+<script>
+  function parsePos(value: string, fallback: number) {
+    if (value.endsWith("%")) return Number.parseFloat(value) / 100;
+    return fallback;
+  }
+
+  function fitLivedPlot() {
+    const section = document.querySelector<HTMLElement>(".cg-lived");
+    const img = section?.querySelector<HTMLImageElement>(".cg-lived-photo");
+    const plot = section?.querySelector<HTMLElement>(".cg-lived-plot");
+    if (!section || !img || !plot) return;
+
+    const r = img.getBoundingClientRect();
+    const host = section.getBoundingClientRect();
+    const nw = img.naturalWidth || 1536;
+    const nh = img.naturalHeight || 1024;
+    if (!r.width || !r.height) return;
+
+    const ir = nw / nh;
+    const cr = r.width / r.height;
+    const fit = getComputedStyle(img).objectFit;
+    const parts = getComputedStyle(img).objectPosition.split(" ");
+    const ox = parsePos(parts[0] ?? "50%", 0.5);
+    const oy = parsePos(parts[1] ?? "50%", 0.5);
+
+    let w: number;
+    let h: number;
+    if (fit === "contain") {
+      if (ir > cr) {
+        w = r.width;
+        h = r.width / ir;
+      } else {
+        h = r.height;
+        w = r.height * ir;
+      }
+    } else if (cr > ir) {
+      w = r.width;
+      h = r.width / ir;
+    } else {
+      h = r.height;
+      w = r.height * ir;
+    }
+
+    plot.style.left = `${r.left - host.left + (r.width - w) * ox}px`;
+    plot.style.top = `${r.top - host.top + (r.height - h) * oy}px`;
+    plot.style.width = `${w}px`;
+    plot.style.height = `${h}px`;
+  }
+
+  fitLivedPlot();
+  window.addEventListener("resize", fitLivedPlot);
+  document.querySelector(".cg-lived-photo")?.addEventListener("load", fitLivedPlot);
 </script>
 
 <style is:global>
@@ -305,6 +366,22 @@ const placePath = placeStars
     pointer-events: none;
   }
 
+  .cg-lived-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .cg-lived-plot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
   .cg-day-sky {
     position: absolute;
     inset: 0;
@@ -377,19 +454,22 @@ const placePath = placeStars
 
   .cg-star {
     position: absolute;
-    width: 0.95rem;
-    height: 0.95rem;
+    z-index: 0;
+    width: 0.68rem;
+    height: 0.68rem;
     padding: 0;
     border: 0;
     background: transparent;
     transform: translate(-50%, -50%);
-    pointer-events: auto;
-    text-decoration: none;
+    pointer-events: none;
     color: inherit;
+    isolation: isolate;
   }
 
   .cg-star-core {
     display: block;
+    position: relative;
+    z-index: 0;
     width: 100%;
     height: 100%;
     border-radius: 999px;
@@ -400,7 +480,8 @@ const placePath = placeStars
 
   .cg-star:hover .cg-star-core,
   .cg-star.is-on .cg-star-core,
-  .cg-star[aria-current="true"] .cg-star-core {
+  .cg-star:has(.cg-star-name:focus-visible) .cg-star-core,
+  .cg-star:has(.cg-star-name[aria-current="true"]) .cg-star-core {
     transform: scale(1.28);
     box-shadow: 0 0 0 2px #fff8e8, 0 0 16px 5px rgba(232, 176, 80, 0.7);
   }
@@ -408,7 +489,8 @@ const placePath = placeStars
   .cg-star-name {
     position: absolute;
     left: 50%;
-    top: calc(100% + 0.32rem);
+    top: calc(100% - 0.2rem);
+    z-index: 1;
     transform: translateX(-50%);
     white-space: nowrap;
     font-family: var(--display);
@@ -418,7 +500,10 @@ const placePath = placeStars
     letter-spacing: 0.01em;
     color: #f4e4b8;
     opacity: 1;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 0.12rem 0.28rem;
     text-shadow:
       -1px -1px 0 rgba(18, 10, 4, 0.82),
       1px -1px 0 rgba(18, 10, 4, 0.82),
@@ -428,10 +513,18 @@ const placePath = placeStars
       0 2px 8px rgba(16, 8, 4, 0.58);
   }
 
+  .cg-star[data-star="santa-fe-2"] .cg-star-name {
+    transform: translateX(calc(-50% - 0.7rem));
+  }
+
+  .cg-star[data-star="dresden"] .cg-star-name {
+    transform: translateX(calc(-50% + 0.75rem));
+  }
+
   .cg-star:hover .cg-star-name,
   .cg-star.is-on .cg-star-name,
-  .cg-star:focus-visible .cg-star-name,
-  .cg-star[aria-current="true"] .cg-star-name {
+  .cg-star-name:focus-visible,
+  .cg-star-name[aria-current="true"] {
     opacity: 1;
     color: #fff3d2;
   }
@@ -690,6 +783,11 @@ const placePath = placeStars
     .cg-lived-copy {
       padding: 3.4rem 1.4rem 5.5rem;
       width: auto;
+    }
+
+    .cg-lived-photo {
+      object-fit: contain;
+      object-position: 50% 100%;
     }
   }
 

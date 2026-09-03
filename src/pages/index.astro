@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import LivedCave from "../components/LivedCave.astro";
 import { site } from "../data/site";
 import { built } from "../data/built";
 import { places, localityLine, ridgePts } from "../data/places";
@@ -30,11 +31,7 @@ const placeStars = places.map((place, i) => ({
 }));
 
 const placePath = placeStars
-  .map((p, i) => {
-    const x = (p.x / 100) * 1440;
-    const y = (p.y / 100) * 720;
-    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-  })
+  .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
   .join(" ");
 ---
 
@@ -64,6 +61,7 @@ const placePath = placeStars
         />
         <canvas class="summit-fall" aria-hidden="true"></canvas>
         <button type="button" class="summit-hit" aria-label="Summit"></button>
+        <p class="hero-eggs">You can find two surprises on this site if you click around. Both of them on mountains.</p>
       </div>
     </section>
   </div>
@@ -80,7 +78,7 @@ const placePath = placeStars
 
     <div class="cg-built-frame">
       <header class="cg-built-head">
-        <p class="cg-banner-kicker">Things I’ve built</p>
+        <p class="cg-banner-kicker">Things I built or led</p>
         <p class="cg-when">Now</p>
         <h2>{iguru.title}</h2>
         <p class="cg-lead-role">{iguru.role}</p>
@@ -122,27 +120,60 @@ const placePath = placeStars
   </section>
 
   <section class="cg-lived" id="lived">
-    <img
-      class="cg-lived-photo"
-      src="/lived-golden-hour.png"
-      alt=""
-      width="1920"
-      height="1080"
-      decoding="async"
-    />
-    <svg
-      class="cg-day-sky"
-      viewBox="0 0 1440 720"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path
-        d={placePath}
-        fill="none"
-        stroke="#d4af5a"
-        stroke-width="1.05"
-        opacity="0.7"></path>
-    </svg>
+    <div class="cg-lived-stage">
+      <img
+        class="cg-lived-photo"
+        src="/lived-golden-hour.png"
+        alt=""
+        width="1536"
+        height="1024"
+        decoding="async"
+      />
+      <div class="cg-lived-plot">
+        <svg
+          class="cg-day-sky"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            d={placePath}
+            fill="none"
+            stroke="#d4af5a"
+            stroke-width="1.05"
+            opacity="0.7"></path>
+        </svg>
+
+        <div class="cg-stars cg-stars-day" data-stars="lived">
+          {
+            placeStars.map((star, i) => (
+              <div
+                class:list={[
+                  "cg-star",
+                  "cg-star-place",
+                  { "is-on": i === hereIndex },
+                ]}
+                style={`left:${star.x}%; top:${star.y}%`}
+                data-star={star.slug}
+                data-title={star.city}
+                data-role={star.locality}
+                data-summary={star.short}
+              >
+                <span class="cg-star-core" aria-hidden="true"></span>
+                <a
+                  class="cg-star-name"
+                  href={`/lived#${star.slug}`}
+                  aria-current={i === hereIndex ? "true" : undefined}
+                >
+                  {star.city}
+                </a>
+              </div>
+            ))
+          }
+        </div>
+        <LivedCave />
+      </div>
+    </div>
 
     <div class="cg-lived-copy" data-panel="lived">
       <h2>
@@ -185,30 +216,6 @@ const placePath = placeStars
         The whole journey →
       </a>
     </div>
-
-    <div class="cg-stars cg-stars-day" data-stars="lived">
-      {
-        placeStars.map((star, i) => (
-          <a
-            class:list={[
-              "cg-star",
-              "cg-star-place",
-              { "is-on": i === hereIndex },
-            ]}
-            style={`left:${star.x}%; top:${star.y}%`}
-            href={`/lived#${star.slug}`}
-            data-star={star.slug}
-            data-title={star.city}
-            data-role={star.locality}
-            data-summary={star.short}
-            aria-current={i === hereIndex ? "true" : undefined}
-          >
-            <span class="cg-star-core"></span>
-            <span class="cg-star-name">{star.city}</span>
-          </a>
-        ))
-      }
-    </div>
   </section>
 
   <section class="cg-bookish" id="bookish">
@@ -226,17 +233,20 @@ const placePath = placeStars
     const panel = document.querySelector(`[data-panel="${group}"]`);
     if (!(root instanceof HTMLElement) || !(panel instanceof HTMLElement)) return;
 
-    const stars = [...root.querySelectorAll<HTMLAnchorElement>("[data-star]")];
+    const stars = [...root.querySelectorAll<HTMLElement>("[data-star]")];
     const title = panel.querySelector("[data-title]");
     const role = panel.querySelector("[data-role], [data-locality]");
     const summary = panel.querySelector("[data-summary]");
 
-    const select = (btn: HTMLAnchorElement) => {
+    const select = (btn: HTMLElement) => {
       stars.forEach((star) => {
         const on = star === btn;
         star.classList.toggle("is-on", on);
-        if (on) star.setAttribute("aria-current", "true");
-        else star.removeAttribute("aria-current");
+        const name = star.querySelector(".cg-star-name");
+        if (name instanceof HTMLElement) {
+          if (on) name.setAttribute("aria-current", "true");
+          else name.removeAttribute("aria-current");
+        }
       });
       if (title) title.textContent = btn.dataset.title ?? "";
       if (role) role.textContent = btn.dataset.role ?? "";
@@ -244,8 +254,9 @@ const placePath = placeStars
     };
 
     stars.forEach((star) => {
-      star.addEventListener("mouseenter", () => select(star));
-      star.addEventListener("focus", () => select(star));
+      const name = star.querySelector(".cg-star-name");
+      name?.addEventListener("mouseenter", () => select(star));
+      name?.addEventListener("focus", () => select(star));
     });
   }
 
@@ -253,32 +264,77 @@ const placePath = placeStars
 </script>
 
 <script>
+  function parsePos(value: string, fallback: number) {
+    if (value.endsWith("%")) return Number.parseFloat(value) / 100;
+    return fallback;
+  }
+
+  function fitLivedPlot() {
+    const section = document.querySelector<HTMLElement>(".cg-lived");
+    const img = section?.querySelector<HTMLImageElement>(".cg-lived-photo");
+    const plot = section?.querySelector<HTMLElement>(".cg-lived-plot");
+    if (!section || !img || !plot) return;
+
+    const r = img.getBoundingClientRect();
+    const host = section.getBoundingClientRect();
+    const nw = img.naturalWidth || 1536;
+    const nh = img.naturalHeight || 1024;
+    if (!r.width || !r.height) return;
+
+    const ir = nw / nh;
+    const cr = r.width / r.height;
+    const fit = getComputedStyle(img).objectFit;
+    const parts = getComputedStyle(img).objectPosition.split(" ");
+    const ox = parsePos(parts[0] ?? "50%", 0.5);
+    const oy = parsePos(parts[1] ?? "50%", 0.5);
+
+    let w: number;
+    let h: number;
+    if (fit === "contain") {
+      if (ir > cr) {
+        w = r.width;
+        h = r.width / ir;
+      } else {
+        h = r.height;
+        w = r.height * ir;
+      }
+    } else if (cr > ir) {
+      w = r.width;
+      h = r.width / ir;
+    } else {
+      h = r.height;
+      w = r.height * ir;
+    }
+
+    plot.style.left = `${r.left - host.left + (r.width - w) * ox}px`;
+    plot.style.top = `${r.top - host.top + (r.height - h) * oy}px`;
+    plot.style.width = `${w}px`;
+    plot.style.height = `${h}px`;
+  }
+
+  fitLivedPlot();
+  window.addEventListener("resize", fitLivedPlot);
+  document.querySelector(".cg-lived-photo")?.addEventListener("load", fitLivedPlot);
+</script>
+
+<script>
   const SUMMIT = { x: 0.5, y: 0.137 };
-  const RIDGES = [
-    { cx: 0.36, cy: 0.36, ex: 0.14, ey: 0.9, delay: 0.03, width: 0.24 },
-    { cx: 0.4, cy: 0.42, ex: 0.26, ey: 0.97, delay: 0, width: 0.3 },
-    { cx: 0.44, cy: 0.48, ex: 0.38, ey: 0.99, delay: 0.04, width: 0.34 },
-    { cx: 0.5, cy: 0.5, ex: 0.51, ey: 1.02, delay: 0.01, width: 0.4 },
-    { cx: 0.56, cy: 0.48, ex: 0.64, ey: 0.99, delay: 0.05, width: 0.34 },
-    { cx: 0.6, cy: 0.42, ex: 0.76, ey: 0.94, delay: 0.07, width: 0.28 },
-    { cx: 0.66, cy: 0.36, ex: 0.88, ey: 0.86, delay: 0.09, width: 0.22 },
-  ] as const;
-  const DURATION = 4400;
+  const DURATION = 3600;
 
   const egg = document.querySelector<HTMLElement>("[data-summit-egg]");
   const img = egg?.querySelector<HTMLImageElement>(".hero-mountain");
   const canvas = egg?.querySelector<HTMLCanvasElement>(".summit-fall");
   const hit = egg?.querySelector<HTMLButtonElement>(".summit-hit");
-  const lived = document.querySelector<HTMLElement>(".cg-lived");
-  const nodes = [
-    ...document.querySelectorAll<HTMLElement>('[data-stars="lived"] [data-star]'),
-  ];
   if (egg && img && canvas && hit) {
     const ctx = canvas.getContext("2d");
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let running = false;
     let raf = 0;
     let box = { x: 0, y: 0, w: 0, h: 0 };
+    let mesh = {
+      nodes: [] as { x: number; y: number; at: number }[],
+      edges: [] as { a: number; b: number }[],
+    };
 
     function parsePos(value: string, fallback: number) {
       if (value.endsWith("%")) return Number.parseFloat(value) / 100;
@@ -334,165 +390,103 @@ const placePath = placeStars
       return 1 - (1 - Math.min(1, Math.max(0, t))) ** 2.15;
     }
 
-    function qPoint(
-      ax: number,
-      ay: number,
-      cx: number,
-      cy: number,
-      bx: number,
-      by: number,
-      t: number,
-    ) {
-      const u = 1 - t;
-      return {
-        x: u * u * ax + 2 * u * t * cx + t * t * bx,
-        y: u * u * ay + 2 * u * t * cy + t * t * by,
-      };
-    }
-
-    function qTan(
-      ax: number,
-      ay: number,
-      cx: number,
-      cy: number,
-      bx: number,
-      by: number,
-      t: number,
-    ) {
-      const dx = 2 * (1 - t) * (cx - ax) + 2 * t * (bx - cx);
-      const dy = 2 * (1 - t) * (cy - ay) + 2 * t * (by - cy);
-      const len = Math.hypot(dx, dy) || 1;
-      return { x: dx / len, y: dy / len };
-    }
-
-    function fillRibbon(
-      left: { x: number; y: number }[],
-      right: { x: number; y: number }[],
-    ) {
-      if (!ctx || !left[0] || !right[0]) return;
-      ctx.beginPath();
-      ctx.moveTo(left[0].x, left[0].y);
-      for (const p of left) ctx.lineTo(p.x, p.y);
-      for (let i = right.length - 1; i >= 0; i--) {
-        ctx.lineTo(right[i]!.x, right[i]!.y);
+    function sampleMesh() {
+      if (!img!.naturalWidth) return;
+      const nw = img!.naturalWidth;
+      const nh = img!.naturalHeight;
+      const probe = document.createElement("canvas");
+      probe.width = nw;
+      probe.height = nh;
+      const pctx = probe.getContext("2d", { willReadFrequently: true });
+      if (!pctx) return;
+      pctx.drawImage(img!, 0, 0);
+      const { data } = pctx.getImageData(0, 0, nw, nh);
+      const gold: { x: number; y: number; v: number }[] = [];
+      for (let y = 2; y < nh - 2; y += 2) {
+        for (let x = 2; x < nw - 2; x += 2) {
+          const i = (y * nw + x) * 4;
+          const r = data[i] ?? 0;
+          const g = data[i + 1] ?? 0;
+          const b = data[i + 2] ?? 0;
+          const v = (r + g) / 2 - b;
+          if (r > 150 && g > 110 && b < 160 && r > b + 36 && v > 58) {
+            gold.push({ x, y, v });
+          }
+        }
       }
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    function ribbon(
-      ridge: (typeof RIDGES)[number],
-      back: number,
-      front: number,
-      scale: number,
-    ) {
-      const peak = toXY(SUMMIT.x, SUMMIT.y);
-      const ctrl = toXY(ridge.cx, ridge.cy);
-      const end = toXY(ridge.ex, ridge.ey);
-      const steps = 28;
-      const left: { x: number; y: number }[] = [];
-      const right: { x: number; y: number }[] = [];
-      for (let i = 0; i <= steps; i++) {
-        const t = back + ((front - back) * i) / steps;
-        const p = qPoint(peak.x, peak.y, ctrl.x, ctrl.y, end.x, end.y, t);
-        const tan = qTan(peak.x, peak.y, ctrl.x, ctrl.y, end.x, end.y, t);
-        const along = i / steps;
-        const envelope = Math.sin(along * Math.PI) ** 0.42;
-        const w =
-          box.w *
-          ridge.width *
-          scale *
-          (0.38 + 1.05 * t) *
-          (0.58 + 0.42 * envelope);
-        left.push({ x: p.x - tan.y * w, y: p.y + tan.x * w });
-        right.push({ x: p.x + tan.y * w, y: p.y - tan.x * w });
+      gold.sort((a, b) => b.v - a.v);
+      const found: { x: number; y: number; v: number }[] = [];
+      const minDist = Math.max(8, nw * 0.009);
+      for (const c of gold) {
+        if (found.some((n) => Math.hypot(n.x - c.x, n.y - c.y) < minDist)) continue;
+        found.push(c);
       }
-      const lead = qPoint(peak.x, peak.y, ctrl.x, ctrl.y, end.x, end.y, front);
-      return { left, right, peak, lead };
-    }
+      if (!found.length) return;
 
-    function ridgeFront(ridge: (typeof RIDGES)[number], progress: number) {
-      const local = (progress - ridge.delay) / 0.82;
-      if (local <= 0) return 0;
-      return ease(Math.min(1, local));
-    }
-
-    function drawDarkSheet(
-      ridge: (typeof RIDGES)[number],
-      progress: number,
-      fade: number,
-    ) {
-      if (!ctx) return;
-      const front = ridgeFront(ridge, progress);
-      if (front < 0.02) return;
-      const { left, right } = ribbon(ridge, 0, front, 1.55);
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.9 * fade})`;
-      fillRibbon(left, right);
-    }
-
-    function drawSnowSheet(
-      ridge: (typeof RIDGES)[number],
-      progress: number,
-      fade: number,
-      scale: number,
-      alpha: number,
-      span: number,
-    ) {
-      if (!ctx) return;
-      const front = ridgeFront(ridge, progress);
-      const back = Math.max(progress > 0.12 ? 0.06 : 0, front - span);
-      if (front - back < 0.03) return;
-      const { left, right, peak, lead } = ribbon(ridge, back, front, scale);
-      const wash = ctx.createLinearGradient(peak.x, peak.y, lead.x, lead.y);
-      wash.addColorStop(0, `rgba(255, 232, 176, ${0.12 * fade * alpha})`);
-      wash.addColorStop(0.16, `rgba(255, 226, 158, ${0.72 * fade * alpha})`);
-      wash.addColorStop(0.48, `rgba(255, 246, 218, ${0.98 * fade * alpha})`);
-      wash.addColorStop(0.82, `rgba(255, 252, 236, ${0.88 * fade * alpha})`);
-      wash.addColorStop(1, `rgba(255, 240, 200, ${0.18 * fade * alpha})`);
-      ctx.fillStyle = wash;
-      fillRibbon(left, right);
-    }
-
-    function burySummit(progress: number, fade: number) {
-      if (!ctx) return;
-      const peak = toXY(SUMMIT.x, SUMMIT.y);
-      const cover = Math.min(1, progress / 0.06) * fade;
-      const r = box.w * 0.2;
-      ctx.save();
-      ctx.filter = "blur(6px)";
-      const kill = ctx.createRadialGradient(
-        peak.x,
-        peak.y,
-        r * 0.04,
-        peak.x,
-        peak.y,
-        r,
-      );
-      kill.addColorStop(0, `rgba(0, 0, 0, ${1 * cover})`);
-      kill.addColorStop(0.38, `rgba(0, 0, 0, ${0.92 * cover})`);
-      kill.addColorStop(0.7, `rgba(0, 0, 0, ${0.45 * cover})`);
-      kill.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = kill;
-      ctx.beginPath();
-      ctx.arc(peak.x, peak.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function snuffNodes(progress: number, active: boolean) {
-      const n = nodes.length;
-      nodes.forEach((node, i) => {
-        const at = n < 2 ? 0.18 : 0.1 + (i / (n - 1)) * 0.7;
-        node.classList.toggle("is-snuffed", active && progress >= at);
+      let peak = 0;
+      let peakScore = Infinity;
+      found.forEach((n, i) => {
+        const score = Math.hypot(n.x / nw - SUMMIT.x, n.y / nh - SUMMIT.y) - n.v / 8000;
+        if (score < peakScore) {
+          peakScore = score;
+          peak = i;
+        }
       });
+
+      const maxEdge = nw * 0.058;
+      const links: number[][] = found.map(() => []);
+      found.forEach((a, i) => {
+        const near = found
+          .map((b, j) => ({ j, d: Math.hypot(a.x - b.x, a.y - b.y) }))
+          .filter((n) => n.j !== i && n.d < maxEdge)
+          .sort((n, m) => n.d - m.d)
+          .slice(0, 5);
+        for (const n of near) links[i]!.push(n.j);
+      });
+
+      const dist = found.map(() => Infinity);
+      dist[peak] = 0;
+      const walk = [peak];
+      const seenHop = new Set([peak]);
+      while (walk.length) {
+        const i = walk.shift()!;
+        for (const j of links[i] ?? []) {
+          if (seenHop.has(j)) continue;
+          seenHop.add(j);
+          dist[j] = (dist[i] ?? 0) + 1;
+          walk.push(j);
+        }
+      }
+
+      const reachable = dist.filter((d) => d < Infinity);
+      const maxD = Math.max(...reachable, 1);
+      const nodes = found.map((n, i) => ({
+        x: n.x / nw,
+        y: n.y / nh,
+        at: (dist[i] ?? maxD) / maxD,
+      }));
+      const seen = new Set<string>();
+      const edges: { a: number; b: number }[] = [];
+      found.forEach((_, i) => {
+        for (const j of links[i] ?? []) {
+          if (dist[i] === Infinity || dist[j] === Infinity) continue;
+          const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          edges.push({ a: i, b: j });
+        }
+      });
+      mesh = { nodes, edges };
+    }
+
+    function lit(at: number, progress: number) {
+      return ease((progress - at * 0.84) / 0.09);
     }
 
     function restore() {
       const { width, height } = egg!.getBoundingClientRect();
       ctx?.clearRect(0, 0, width, height);
       egg!.classList.remove("is-falling");
-      lived?.classList.remove("is-snuffing");
-      snuffNodes(0, false);
       running = false;
     }
 
@@ -500,65 +494,62 @@ const placePath = placeStars
       if (!ctx) return;
       const { width, height } = egg!.getBoundingClientRect();
       ctx.clearRect(0, 0, width, height);
-      const peak = toXY(SUMMIT.x, SUMMIT.y);
-      const fade = progress > 0.82 ? 1 - (progress - 0.82) / 0.18 : 1;
-      const front = ease(Math.min(1, progress / 0.88));
-      snuffNodes(progress, true);
-
-      burySummit(progress, fade);
+      const fade = progress > 0.86 ? 1 - (progress - 0.86) / 0.14 : 1;
+      const unit = box.w / 520;
 
       ctx.save();
-      ctx.filter = "blur(6px)";
-      for (const ridge of RIDGES) drawDarkSheet(ridge, progress, fade * 0.55);
-      for (const ridge of RIDGES) {
-        drawSnowSheet(ridge, progress, fade, 1.32, 1, 0.84);
-      }
-      ctx.filter = "blur(3.5px)";
-      for (const ridge of RIDGES) {
-        drawSnowSheet(ridge, progress, fade, 0.78, 0.9, 0.58);
+      ctx.globalCompositeOperation = "screen";
+      ctx.lineCap = "round";
+      for (const edge of mesh.edges) {
+        const a = mesh.nodes[edge.a];
+        const b = mesh.nodes[edge.b];
+        if (!a || !b) continue;
+        const glow = Math.min(lit(a.at, progress), lit(b.at, progress)) * fade;
+        if (glow <= 0.02) continue;
+        const pa = toXY(a.x, a.y);
+        const pb = toXY(b.x, b.y);
+        ctx.strokeStyle = `rgba(243, 213, 138, ${0.22 + 0.7 * glow})`;
+        ctx.lineWidth = (0.7 + 1.15 * glow) * unit;
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
       }
 
-      const gleamY = peak.y + box.h * (0.16 + 0.68 * front);
-      const gleam = ctx.createRadialGradient(
-        peak.x + box.w * 0.02,
-        gleamY,
-        box.h * 0.005,
-        peak.x + box.w * 0.02,
-        gleamY,
-        box.w * (0.08 + 0.12 * front),
-      );
-      gleam.addColorStop(0, `rgba(255, 252, 240, ${0.4 * fade})`);
-      gleam.addColorStop(0.55, `rgba(255, 236, 186, ${0.14 * fade})`);
-      gleam.addColorStop(1, "rgba(255, 248, 220, 0)");
-      ctx.fillStyle = gleam;
-      ctx.beginPath();
-      ctx.ellipse(
-        peak.x + box.w * 0.02,
-        gleamY,
-        box.w * (0.11 + 0.14 * front),
-        box.h * 0.024,
-        0.08,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
+      for (const node of mesh.nodes) {
+        const glow = lit(node.at, progress) * fade;
+        if (glow <= 0.02) continue;
+        const p = toXY(node.x, node.y);
+        const peakish = node.at < 0.02;
+        const r = (peakish ? 7.2 : 2.15 + 2.4 * glow) * unit;
+        const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.1);
+        halo.addColorStop(0, `rgba(255, 248, 220, ${0.95 * glow})`);
+        halo.addColorStop(0.22, `rgba(243, 213, 138, ${0.85 * glow})`);
+        halo.addColorStop(1, "rgba(197, 157, 95, 0)");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 3.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(255, 246, 210, ${0.75 + 0.25 * glow})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
     function flash() {
       if (!ctx) return;
       sizeCanvas();
-      lived?.classList.add("is-snuffing");
-      snuffNodes(1, true);
-      draw(0.5);
-      window.setTimeout(restore, 420);
+      draw(0.55);
+      window.setTimeout(restore, 480);
     }
 
     function play() {
       if (running) return;
+      if (!mesh.nodes.length) sampleMesh();
       running = true;
       egg!.classList.add("is-falling");
-      lived?.classList.add("is-snuffing");
       sizeCanvas();
       if (reduce) {
         flash();
@@ -579,9 +570,13 @@ const placePath = placeStars
     }
 
     hit.addEventListener("click", play);
-    img.addEventListener("load", sizeCanvas);
+    img.addEventListener("load", () => {
+      sizeCanvas();
+      sampleMesh();
+    });
     window.addEventListener("resize", sizeCanvas);
     sizeCanvas();
+    if (img.complete) sampleMesh();
   }
 </script>
 
@@ -601,6 +596,24 @@ const placePath = placeStars
     isolation: isolate;
   }
 
+  .hero-eggs {
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    right: 12%;
+    bottom: 0.7rem;
+    margin: 0;
+    pointer-events: none;
+    font-family: var(--ui);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  }
+
   .hero-art .hero-mountain {
     pointer-events: none;
   }
@@ -612,7 +625,6 @@ const placePath = placeStars
     width: 100%;
     height: 100%;
     pointer-events: none;
-    filter: blur(0.45px);
   }
 
   .summit-hit {
@@ -673,6 +685,13 @@ const placePath = placeStars
   @media (prefers-reduced-motion: reduce) {
     .summit-hit {
       animation: none;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .hero-eggs {
+      right: 0;
+      bottom: 0.45rem;
     }
   }
 
@@ -740,6 +759,22 @@ const placePath = placeStars
     pointer-events: none;
   }
 
+  .cg-lived-stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .cg-lived-plot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
   .cg-built-photo {
     object-position: 70% 40%;
   }
@@ -778,7 +813,7 @@ const placePath = placeStars
 
   .cg-when {
     font-family: var(--ui);
-    font-size: 0.72rem;
+    font-size: 0.84rem;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -816,7 +851,7 @@ const placePath = placeStars
   .cg-lead-role {
     margin: 0.55rem 0 0;
     font-family: var(--ui);
-    font-size: 0.78rem;
+    font-size: 0.9rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(247, 244, 238, 0.58);
@@ -879,7 +914,7 @@ const placePath = placeStars
 
   .cg-index-role {
     font-family: var(--ui);
-    font-size: 0.78rem;
+    font-size: 0.9rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(247, 244, 238, 0.58);
@@ -888,11 +923,11 @@ const placePath = placeStars
 
   .cg-index-summary {
     font-family: var(--ui);
-    font-size: 0.98rem;
+    font-size: 1.15rem;
     font-weight: 400;
     letter-spacing: 0;
     text-transform: none;
-    line-height: 1.45;
+    line-height: 1.5;
     max-width: 36ch;
     margin: 0.55rem 0 0;
     color: rgba(247, 244, 238, 0.78);
@@ -905,7 +940,7 @@ const placePath = placeStars
 
   .cg-more summary {
     font-family: var(--ui);
-    font-size: 0.68rem;
+    font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -943,7 +978,7 @@ const placePath = placeStars
 
   .cg-more p {
     font-family: var(--ui);
-    font-size: 0.92rem;
+    font-size: 1.08rem;
     line-height: 1.55;
     color: rgba(247, 244, 238, 0.7);
     margin: 0.7rem 0 0;
@@ -953,7 +988,7 @@ const placePath = placeStars
 
   .cg-built-all a {
     font-family: var(--ui);
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -1121,20 +1156,22 @@ const placePath = placeStars
 
   .cg-star {
     position: absolute;
-    width: 0.95rem;
-    height: 0.95rem;
+    z-index: 0;
+    width: 0.68rem;
+    height: 0.68rem;
     padding: 0;
     border: 0;
     background: transparent;
     transform: translate(-50%, -50%);
-    pointer-events: auto;
-    cursor: pointer;
-    text-decoration: none;
+    pointer-events: none;
     color: inherit;
+    isolation: isolate;
   }
 
   .cg-star-core {
     display: block;
+    position: relative;
+    z-index: 0;
     width: 100%;
     height: 100%;
     border-radius: 999px;
@@ -1149,7 +1186,7 @@ const placePath = placeStars
 
   .cg-star:hover .cg-star-core,
   .cg-star.is-on .cg-star-core,
-  .cg-star[aria-current="true"] .cg-star-core {
+  .cg-star:has(.cg-star-name:focus-visible) .cg-star-core {
     transform: scale(1.28);
     box-shadow: 0 0 0 2px #fff8e8, 0 0 16px 5px rgba(232, 176, 80, 0.7);
   }
@@ -1157,7 +1194,8 @@ const placePath = placeStars
   .cg-star-name {
     position: absolute;
     left: 50%;
-    top: calc(100% + 0.32rem);
+    top: calc(100% - 0.2rem);
+    z-index: 1;
     transform: translateX(-50%);
     white-space: nowrap;
     font-family: var(--display);
@@ -1167,7 +1205,10 @@ const placePath = placeStars
     letter-spacing: 0.01em;
     color: #f4e4b8;
     opacity: 1;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 0.12rem 0.28rem;
     transition: opacity 0.45s ease, color 0.25s ease;
     text-shadow:
       -1px -1px 0 rgba(18, 10, 4, 0.82),
@@ -1178,10 +1219,19 @@ const placePath = placeStars
       0 2px 8px rgba(16, 8, 4, 0.58);
   }
 
+  .cg-star[data-star="santa-fe-2"] .cg-star-name {
+    transform: translateX(calc(-50% - 0.7rem));
+  }
+
+  .cg-star[data-star="dresden"] .cg-star-name {
+    transform: translateX(calc(-50% + 0.75rem));
+  }
+
   .cg-star:hover .cg-star-name,
   .cg-star.is-on .cg-star-name,
-  .cg-star:focus-visible .cg-star-name,
-  .cg-star[aria-current="true"] .cg-star-name {
+  .cg-star-name:focus-visible,
+  .cg-star[aria-current="true"] .cg-star-name,
+  .cg-star-name[aria-current="true"] {
     opacity: 1;
     color: #fff3d2;
   }
@@ -1277,6 +1327,11 @@ const placePath = placeStars
     .cg-lived-copy {
       padding: 4.5rem 1.4rem 12rem;
       width: auto;
+    }
+
+    .cg-lived-photo {
+      object-fit: contain;
+      object-position: 50% 100%;
     }
 
     .cg-index {
