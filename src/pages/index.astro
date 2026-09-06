@@ -37,10 +37,6 @@ const placePath = placeStars
 
 <Base bodyClass="share-home">
   <div class="home-stage">
-    <header class="cg-masthead">
-      <a class="cg-btn cg-btn-ghost" href="/contact">Get in touch</a>
-    </header>
-
     <section class="hero">
       <div class="hero-copy">
         <h1 class="display-name">Austin X. Volz</h1>
@@ -222,9 +218,12 @@ const placePath = placeStars
     <h2><a href="/bookish">Bookish Pursuits</a></h2>
   </section>
 
-  <p class="cg-linkedin">
-    See the <a href={site.linkedin} rel="me">LinkedIn version</a>.
-  </p>
+  <footer class="cg-foot">
+    <p class="cg-linkedin">
+      See the <a href={site.linkedin} rel="me">LinkedIn version</a>.
+    </p>
+    <a class="cg-btn cg-btn-ghost" href="/contact">Get in touch</a>
+  </footer>
 </Base>
 
 <script>
@@ -695,15 +694,13 @@ const placePath = placeStars
     }
   }
 
-  .cg-masthead {
-    flex-shrink: 0;
+  .cg-foot {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    padding: 1.1rem max(2rem, calc((100vw - 78rem) / 2));
-    position: relative;
-    z-index: 3;
+    gap: 1.5rem;
+    padding: 0 max(2rem, calc((100vw - 78rem) / 2)) 2.6rem;
+    background: #000;
   }
 
   .cg-btn {
@@ -1291,8 +1288,6 @@ const placePath = placeStars
 
   .cg-linkedin {
     margin: 0;
-    padding: 0 max(2rem, calc((100vw - 78rem) / 2)) 2.6rem;
-    background: #000;
     font-family: var(--display);
     font-size: 1.05rem;
     font-weight: 500;
@@ -1314,8 +1309,10 @@ const placePath = placeStars
   }
 
   @media (max-width: 840px) {
-    .cg-masthead {
-      padding-inline: 1.25rem;
+    .cg-foot {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-inline: 1.4rem;
     }
 
     .cg-built,
@@ -1347,7 +1344,7 @@ const placePath = placeStars
       padding: 3.4rem 1.4rem 3rem;
     }
 
-    .cg-linkedin {
+    .cg-foot {
       padding-inline: 1.4rem;
     }
   }
